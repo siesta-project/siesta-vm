@@ -1,0 +1,6 @@
+[submodule "roles/marvel-nccr.siesta"]
+	path = roles/marvel-nccr.siesta
+	url = git@github.com:siesta-project/ansible-role-siesta.git
+[submodule "roles/marvel-nccr.libxc"]
+	path = roles/marvel-nccr.libxc
+	url = git@github.com:marvel-nccr/ansible-role-libxc.git

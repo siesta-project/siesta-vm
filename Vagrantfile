@@ -26,6 +26,7 @@ Vagrant.configure(2) do |config|
 # Provision with Ansible
     config.vm.provision "ansible" do |ansible|
       ansible.playbook = "playbook.yml"
+      #ansible.verbose = "v" 
       #ansible.tags = "tests"
     end
 end

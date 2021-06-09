@@ -23,6 +23,8 @@ Vagrant.configure(2) do |config|
 # config.ssh.private_key_path = "~/.ssh/id_rsa"
 # config.ssh.forward_agent    = true
 
+  config.ssh.forward_agent = true
+  config.ssh.forward_x11 = true
 # Provision with Ansible
     config.vm.provision "ansible" do |ansible|
       ansible.playbook = "playbook.yml"
@@ -30,3 +32,4 @@ Vagrant.configure(2) do |config|
       #ansible.tags = "tests"
     end
 end
+

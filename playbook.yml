@@ -1,9 +1,16 @@
-- name: Install Siesta in a virtual machine
+- name: Install Conda
+  hosts: all
 
+  roles:
+  - name: Install miniconda
+    role: marvel-nccr.conda-codes
+
+- name: Install Siesta in a virtual machine
   hosts: all
 
   roles:
   - name: Install Siesta with some library dependencies
     role: marvel-nccr.siesta
     tags: [siesta]
-    
+
+

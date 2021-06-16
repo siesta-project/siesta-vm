@@ -1,0 +1,13 @@
+- src: marvel-nccr.libxc
+  version: v0.1.0
+- name: marvel-nccr.conda-codes
+  src: https://github.com/siesta-project/ansible-role-conda-codes
+  version: just-conda
+- name: marvel-nccr.siesta
+  src: https://github.com/siesta-project/ansible-role-siesta
+  version: school-2021
+- name: marvel-nccr.aiida
+  src: https://github.com/siesta-project/ansible-role-aiida
+  version: SiestaSlimming
+  #- src: marvel-nccr.aiida
+  #version: v4.2.0

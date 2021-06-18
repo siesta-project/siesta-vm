@@ -1,0 +1,115 @@
+- name: Install Postgresql, RabbitMQ and necessary python packages
+  become: true
+  become_user: "{{ root_user }}"
+  dnf:
+    name:
+    - gcc
+    - gcc-c++    # for building pymatgen C extensions
+      # To get rid of the locale errors on the Centos 8 containers
+    - glibc-langpack-en
+    - git
+      # python virtual environments
+      # database
+    - postgresql
+    - postgresql-server
+    - libpq-devel
+      # misc
+    - libffi-devel
+    - openssl-devel
+    - graphviz  # for provenance graph visualisation
+    - python3-psycopg2  # required for postgresql_db role
+      # Needed for setenforce to disable SELinux
+    - libselinux-utils
+      # Needed to control SELinux from Ansible
+      # We instead need to do this manually as installing the selinux-policy package brings in a dependency that
+      # breaks the package manager (Failed to synchronize cache for repo 'AppStream').
+      # - selinux-policy
+
+- name: Get PackageCloud Erlang repo on CentOS.
+  become: true
+  become_user: "{{ root_user }}"
+  get_url:
+    url: "{{ aiida_erlang_repository_url }}"
+    dest: "{{ aiida_erlang_repository_path }}"
+    force: true
+  when: ansible_distribution == "CentOS"
+
+- name: Get PackageCloud RabbitMQ repo on CentOS.
+  become: true
+  become_user: "{{ root_user }}"
+  get_url:
+    url: "{{ aiida_rabbitmq_repository_url }}"
+    dest: "{{ aiida_rabbitmq_repository_path }}"
+    force: true
+  when: ansible_distribution == "CentOS"
+
+- name: Add PackageCloud GPG key on CentOS
+  become: true
+  become_user: "{{ root_user }}"
+  rpm_key:
+    key: "https://packagecloud.io/gpg.key"
+    state: present
+  when: ansible_distribution == "CentOS"
+
+- name: Install Erlang and RabbitMQ on CentOS
+  become: true
+  become_user: "{{ root_user }}"
+  dnf:
+    name: "{{ aiida_rabbitmq_basename }}-{{ aiida_rabbitmq_version }}"
+    state: "present"
+    disablerepo: "epel"
+    enablerepo:
+    - rabbitmq_erlang
+    - rabbitmq_rabbitmq-server
+  when: ansible_distribution == "CentOS"
+
+- name: Install gcc-g++ and RabbitMQ using dnf on Fedora
+  become: true
+  become_user: "{{ root_user }}"
+  dnf:
+    name:
+    - gcc-g++
+    - rabbitmq-server
+      # To enable find
+    - findutils
+      # To enable pgrep
+    - procps
+  when: ansible_distribution == "Fedora"
+
+# We have to disable SELinux when running the verdi daemon in systemd. SELinux does not
+# allow user domain files to run in init. Consider redesign or write a custom SELinux rule.
+# See comment in the dnf package section why we need to run the command manually.
+- name: Disable SELinux
+  become: true
+  become_user: "{{ root_user }}"
+  # selinux:
+  #  state: disabled
+  shell: setenforce 0
+  changed_when: false
+  ignore_errors: true
+
+- name: Set binary location for Postgresql executables
+  set_fact:
+    aiida_postgres_bin_location: /usr/bin
+
+- name: Set data location for Postgresql
+  set_fact:
+    aiida_postgres_data_location: /var/lib/pgsql/data
+
+- name: Initialize database
+  become: true
+  become_user: "{{ aiida_postgres_user }}"
+  command: "{{ aiida_postgres_bin_location }}/initdb {{ aiida_postgres_data_location }}"
+  args:
+    creates: "{{ aiida_postgres_data_location }}/pg_hba.conf"
+
+# Avoid password on postgres, fix in future so that we can use md5
+- name: put a trust configured pg_hba in place of the default
+  become: true
+  become_user: "{{ aiida_postgres_user }}"
+  template:
+    src: pg_hba.template
+    dest: /var/lib/pgsql/data/pg_hba.conf
+    owner: "{{ aiida_postgres_user }}"
+    group: "{{ aiida_postgres_user }}"
+    mode: 0600

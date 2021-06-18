@@ -1,0 +1,22 @@
+---
+# user
+- name: store user
+  command: "whoami"
+  changed_when: false
+  check_mode: false
+  register: current_user_cmd
+
+- name: Set current user
+  set_fact:
+    current_user: "{{ current_user_cmd.stdout }}"
+
+# home dir
+- name: store user $HOME
+  command: "echo $HOME"
+  changed_when: false
+  check_mode: false
+  register: current_user_home_cmd
+
+- name: Set current user home
+  set_fact:
+    current_user_home: "{{ current_user_home_cmd.stdout }}"

@@ -1,0 +1,39 @@
+# add pseudopotential family
+- name: Download "{{ pp.file }}"
+  become: true
+  become_user: "{{ root_user }}"
+  tags: aiida_pps
+  get_url:
+    url: "{{ pp.url }}"
+    dest: "{{ aiida_temp_folder }}/{{ pp.file }}"
+    mode: "u+r"
+  register: aiida_pp_download
+  until: not aiida_pp_download.failed
+  retries: 3
+  delay: 10
+
+# check whether pp family is already installed
+- name: list PP families
+  shell: "{{ aiida_venv }}/bin/verdi data upf listfamilies"
+  changed_when: false
+  register: aiida_pps
+
+- block:
+  - import_tasks: aiida-pps-sssp.yml
+    tags: aiida_pps
+    when: "'SSSP' in pp.name"
+  - import_tasks: aiida-pps-oncv.yml
+    tags: aiida_pps
+    when: "'oncv' in pp.name"
+  when: pp.name not in aiida_pps.stdout
+
+- include_role:
+    name: release_notes
+  vars:
+    section: "AiiDA"
+    option: "{{ pp.name }}"
+    value: >-
+      pseudopotential family {{ pp.name }}: {{ pp.description }}
+      homepage: {{ pp.home_page }}
+  tags: aiida_pps
+  when: release_notes is defined and release_notes

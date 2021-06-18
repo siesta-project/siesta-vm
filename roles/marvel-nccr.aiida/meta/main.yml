@@ -1,0 +1,31 @@
+allow_duplicates: false
+
+galaxy_info:
+  author: "MARVEL NCCR"
+  description: "An ansible role that installs and configures [AiiDA](http://www.aiida.net/) on Ubuntu, RHEL, CentOS and Fedora."
+  license: MIT
+  min_ansible_version: 2.5
+  platforms:
+  - name: Ubuntu
+    versions:
+    - xenial
+    - bionic
+  - name: Fedora
+    versions:
+    - 31
+  - name: EL
+    versions:
+    - 8
+  galaxy_tags:
+  - fedora
+  - centos
+  - ubuntu
+  - application
+  - science
+
+dependencies:
+- name: marvel-nccr.current_user
+  version: v0.1.0
+- name: marvel-nccr.python
+  version: v0.2.2
+  tags: [never]

@@ -1,0 +1,91 @@
+# Compile and install Siesta
+
+- name: Get siesta source
+  get_url:
+    url: "{{ siesta_url }}"
+    dest: "{{ siesta_code_folder }}/{{ siesta_src_archive }}"
+  register: siesta_download
+  until: not siesta_download.failed
+  retries: 3
+  delay: 10
+
+- name: Extract siesta source
+  unarchive:
+    src: "{{ siesta_download.dest }}"
+    dest: "{{ siesta_code_folder }}"
+    remote_src: true
+
+- name: create Makefile
+  shell: ../Src/obj_setup.sh
+  args:
+    chdir: "{{ siesta_topdir }}/Obj"
+    creates: "{{ siesta_topdir }}/Obj/Makefile"
+
+- name: copy arch.make
+  template:
+    src: master-raw.make
+    dest: "{{ siesta_topdir }}/Obj/arch.make"
+
+- name: Make siesta executable
+  command: make -j{{ siesta_build_cpus }}
+  args:
+    chdir: "{{ siesta_topdir }}/Obj"
+    creates: "{{ siesta_topdir }}/Obj/siesta"
+  register: siesta_make
+
+# This is needed to find the shared libs (notably libgridxc)
+
+- name: add dynamic library path config
+  become: true
+  template:
+    src: siesta.conf
+    dest: /etc/ld.so.conf.d/siesta.conf
+  register: ld_conf
+
+- name: apply dynamic library path config
+  become: true
+  command: ldconfig
+  when: ld_conf.changed
+
+- import_tasks: siesta-tests.yml
+  when: run_tests is defined and run_tests
+
+- name: Install siesta executable
+  become: true
+  copy:
+    src: "{{ siesta_topdir }}/Obj/siesta"
+    dest: "{{ siesta_prefix }}/bin"
+    remote_src: true
+    mode: '0755'
+
+- name: Add release notes (version)
+  include_role:
+    name: release_notes
+  vars:
+    section: "siesta"
+    option: "version"
+    value: "{{ siesta_version }}"
+  when: release_notes is defined and release_notes
+
+- name: Add release notes (usage)
+  include_role:
+    name: release_notes
+  vars:
+    section: "siesta"
+    option: "usage"
+    value: >-
+      siesta is compiled and installed in {{ siesta_prefix }}.
+      Simply run 'siesta' or any of its utilites:
+         mprop
+         fat
+         gnubands
+         eigfat2plot ...
+         ...
+  when: release_notes is defined and release_notes
+
+# Process utilities
+- include_tasks: siesta-utils.yml
+  vars:
+    prog: "{{ item }}"
+  with_items: "{{ siesta_utils }}"
+  tags: siesta_utilites

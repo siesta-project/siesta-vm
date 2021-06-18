@@ -1,0 +1,107 @@
+aiida_python_version: "3.7"
+aiida_version: "1.6.1"
+aiida_tag: v{{ aiida_version }}
+aiida_extras:
+- rest
+- docs
+- atomic_tools
+aiida_temp_folder: "/tmp"
+aiida_data_folder: "${HOME}/.local/share/aiida"
+aiida_templates_folder: "${HOME}/.local/share/aiida"
+aiida_source_folder: "${HOME}/src"
+aiida_examples_folder: "${HOME}"
+aiida_venv_base: "${HOME}/.virtualenvs"
+aiida_venv: "{{ aiida_venv_base }}/aiida"
+aiida_jupyter_venv: "{{ aiida_venv_base }}/jupyter"
+# this file can be used for subsequent installs into the environment,
+# pip install -c {{ aiida_venv_constraints }} new_pacakage
+aiida_venv_constraints: "{{ aiida_data_folder }}/constraints.txt"
+# these are packages required to run the install
+aiida_install_packages:
+- pip~=21.1
+- wheel
+- ipykernel  # required to add the venv as a kernel
+aiida_extra_packages: []
+aiida_jupyter_packages:
+- jupyter~=1.0.0
+- jupyterlab~=2.2.9
+
+# profile
+aiida_profile_name: generic
+aiida_profile_first_name: Max
+aiida_profile_last_name: Scientist
+aiida_profile_institution: Quantum Mobile
+aiida_profile_email: aiida@localhost
+
+# database backend
+aiida_database_backend: django
+
+# postgres
+aiida_postgres_host: localhost
+aiida_postgres_port: 5432
+aiida_postgres_user: postgres
+aiida_postgres_db: aiidadb
+aiida_postgres_db_pw: "ne9N_LDK-*JSS"
+aiida_postgres_db_user: aiida
+
+# erlang (programming language for rabbitmq)
+aiida_erlang_repository_url: "https://packagecloud.io/install/repositories/rabbitmq/erlang/config_file.repo?os={{ ansible_distribution | lower}}&dist={{ ansible_distribution_major_version }}&source=script"
+aiida_erlang_repository_path: "/etc/yum.repos.d/rabbitmq_erlang.repo"
+
+# rabbitmq
+aiida_rabbitmq_version: "3.8.0"
+aiida_rabbitmq_basename: "rabbitmq-server"
+aiida_rabbitmq_repository_url: "https://packagecloud.io/install/repositories/rabbitmq/rabbitmq-server/config_file.repo?os={{ ansible_distribution | lower}}&dist={{ ansible_distribution_major_version | lower}}&source=script"
+aiida_rabbitmq_repository_path: "/etc/yum.repos.d/rabbitmq_rabbitmq-server.repo"
+
+# computer
+aiida_computer_name: localhost
+aiida_computer_cpus: 2
+aiida_computer_scheduler: direct
+aiida_computer_transport: local
+aiida_computer_run_folder: "${HOME}/.aiida_run"
+aiida_computer_mpirun_command: "mpirun -np {tot_num_mpiprocs}"
+
+# `codes_var` below will be looked up dynamically,
+# or ignored if it cannot be found,
+# it should reference a variable that is a list of the format:
+
+  # - name: name
+  #   plugin: plugin.name
+  #   version: 1.0 # version of the executable, not plugin
+  #   folder: /path/to
+  #   executable: executable.exe  # if this is omitted, then the `name` will be used
+
+# the plugin label will be of the format: `{{ code_prefix }}-{{ version }}-{{ code_item.name }}`
+
+aiida_plugins:
+  aiida-abinit:
+    version: "0.2.0a1"
+    code_prefix: abinit
+    codes_var: "abinit_executables"
+  aiida-siesta:
+    version: "1.2.0"
+    code_prefix: siesta
+    codes_var: "siesta_executables"
+  aiida-wannier90:
+    version: "2.0.1"
+    code_prefix: wannier90
+    codes_var: "wannier90_executables"
+  aiida-wannier90_workflows:
+    version: "1.0.1"
+
+# REST API
+# start AiiDA REST API system service on boot?
+aiida_rest_service_enabled: false
+
+aiida_kernel_name: python3
+# default port on which to start jupyter lab with aiida-jupyterlab exec
+aiida_jupyter_port: 8890
+
+# symlink executubles from the aiida environment into the jupyter one
+aiida_jupyter_symlink:
+- verdi
+- reentry
+
+root_user: root
+# add vm_headless=false to add a destop shortcut to start jupyter lab

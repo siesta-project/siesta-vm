@@ -1,0 +1,39 @@
+dependency:
+  name: galaxy
+  requirements_file: molecule/default/requirements.yml
+driver:
+  name: docker
+platforms:
+- name: instance
+  image: "marvelnccr/docker-${MOLECULE_DISTRO:-ubuntu1804}-ansible:latest"
+  # by default the container will initialise with systemd as PID1
+  command: ${MOLECULE_DOCKER_COMMAND:-""}
+  volumes:
+  - /sys/fs/cgroup:/sys/fs/cgroup:ro
+  privileged: true
+  pre_build_image: true
+  env:
+    LC_ALL: "en_US.UTF-8"
+    LANG: "en_US.UTF-8"
+provisioner:
+  name: ansible
+  # log: true  # for debugging
+  playbooks:
+    converge: converge.yml
+  config_options:
+    defaults:
+      # nicer stdout printing
+      stdout_callback: yaml
+      bin_ansible_callbacks: true
+      # add timing to tasks
+      callback_whitelist: profile_tasks
+  inventory:
+    hosts:
+      all:
+        vars:
+          ansible_python_interpreter: /usr/bin/python3
+          aiida_python_version: "${MOLECULE_PYTHON_VERSION:-3.7}"
+          install_node: "${MOLECULE_INSTALL_NODE:-no}"
+          # for testing in docker container
+          jupyter_ip: "0.0.0.0"
+          aiida_jupyter_extra_args: "--allow-root"

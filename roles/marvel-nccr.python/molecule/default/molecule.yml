@@ -1,0 +1,39 @@
+dependency:
+  name: galaxy
+  # requirements_file: molecule/default/requirements.yml
+driver:
+  name: docker
+platforms:
+- name: instance
+  image: "marvelnccr/docker-${MOLECULE_DISTRO:-ubuntu1804}-ansible:latest"
+  command: "${MOLECULE_DOCKER_COMMAND:-sleep infinity}"
+  volumes:
+  # required if using systemd to manage services
+  - /sys/fs/cgroup:/sys/fs/cgroup:ro
+  privileged: true
+  pre_build_image: true
+  env:
+    LC_ALL: "en_US.UTF-8"
+    LANG: "en_US.UTF-8"
+provisioner:
+  name: ansible
+  # log: true  # for debugging
+  playbooks:
+    converge: converge.yml
+  config_options:
+    defaults:
+      # nicer stdout printing
+      stdout_callback: yaml
+      bin_ansible_callbacks: true
+      # add timing to tasks
+      callback_whitelist: profile_tasks
+  inventory:
+    hosts:
+      all:
+        vars:
+          ansible_python_interpreter: /usr/bin/python3
+          python_base_version: "${MOLECULE_PYTHON_VERSION:-3.7}"
+          python_install_dev: true
+          python_install_tk: true
+          python_venv_path: /tmp/test_venv
+          run_tests: true

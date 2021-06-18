@@ -1,0 +1,73 @@
+# See: https://www.tddft.org/programs/libxc/installation/
+- name: Install libxc dependencies
+  become: true
+  apt:
+    update_cache: yes
+    cache_valid_time: 36000
+    name:
+    - gfortran
+    - make
+    - unzip
+
+- name: Install bzip2
+  when: ansible_facts['distribution_major_version'] | int <= 16
+  become: true
+  apt:
+    name:
+    - bzip2
+
+- name: Get libxc source
+  get_url:
+    url: "{{ libxc_url }}"
+    dest: "{{ libxc_code_folder }}/{{ libxc_src_archive }}"
+  register: libxc_download
+  until: not libxc_download.failed
+  retries: 3
+  delay: 10
+
+- name: Extract libxc source
+  unarchive:
+    src: "{{ libxc_download.dest }}"
+    dest: "{{ libxc_code_folder }}"
+    creates: "{{ libxc_code_folder }}/{{ libxc_src }}"
+    remote_src: true
+
+- name: Create libxc configure
+  shell: autoreconf -i
+  args:
+    chdir: "{{ libxc_code_folder }}/{{ libxc_src }}"
+    creates: "{{ libxc_code_folder }}/{{ libxc_src }}/configure"
+
+- name: Create libxc Makefile
+  shell: ./configure --prefix={{ libxc_prefix }}
+  args:
+    chdir: "{{ libxc_code_folder }}/{{ libxc_src }}"
+    creates: "{{ libxc_code_folder }}/{{ libxc_src }}/build/Makefile"
+
+- name: Check that the libxc Makefile was created
+  stat:
+    path: "{{ libxc_code_folder }}/{{ libxc_src }}/build/Makefile"
+  register: libxc_makefile
+  failed_when: not libxc_makefile.stat.exists
+
+- name: Compile libxc executable ({{ libxc_build_cpus }} cpu)
+  shell: "make -j{{ libxc_build_cpus }}"
+  args:
+    chdir: "{{ libxc_code_folder }}/{{ libxc_src }}"
+    creates: "{{ libxc_code_folder }}/{{ libxc_src }}/src/xc-info"
+  register: libxc_make
+
+- name: Run make check for libxc
+  when: libxc_make.changed
+  changed_when: false
+  shell: make -j{{ libxc_build_cpus }} check
+  args:
+    chdir: "{{ libxc_code_folder }}/{{ libxc_src }}"
+
+- name: Install libxc in {{ libxc_prefix }}
+  when: libxc_make.changed
+  become: true
+  shell: make install
+  args:
+    chdir: "{{ libxc_code_folder }}/{{ libxc_src }}"
+    creates: "{{ libxc_prefix }}/bin/xc-info"

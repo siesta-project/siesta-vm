@@ -1,0 +1,17 @@
+# in this file add variables to be used in the tasks
+
+conda_code_miniconda_ver: "4.9.2"
+conda_code_python_version: "3.8"
+
+conda_code_parent_dir: "${HOME}/.local"
+conda_code_link_dir: ".condaenvs"
+
+conda_code_auto_activate: false
+
+conda_code_test_cpus: 2
+
+conda_code_abinit_version: "9.4.0"
+conda_code_abinit_build:
+
+conda_code_cp2k_version: "8.1.0"
+conda_code_cp2k_build: "py38_openmpi_0"

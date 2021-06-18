@@ -1,0 +1,213 @@
+#
+# These variables control the optional features.
+#
+siesta_enable_mpi: "1"
+siesta_enable_netcdf: "1"
+siesta_enable_ncdf: "1"
+siesta_enable_flook: "1"
+
+#
+siesta_build_cpus: 2
+run_tests: true
+#--------------------------
+#
+# We install by default the MaX-1.X series of versions. These have
+# important features (PSML pseudopotentials, etc), not yet merged into the
+# master version.
+# PSML support is important to access databases of pseudopotentials for all elements.
+#
+# Note that support for the ELSI library is not compiled in
+# in this deployment for the QuantumMobile, as it is mostly a performance
+# feature.
+#
+# Any version in GitLab with a tag of the form MaX.1* can be used here.
+#
+siesta_version: "MaX-1.2.0"
+#------------------------------------------------------------------------------------
+#
+# Still, it is possible to install the "rel-4.1" version of Siesta
+# by setting
+#
+#### siesta_version: "v4.1-rc2"
+#
+# **AND** removing "unfold" from the list of 'siesta_utils' futher below
+#------------------------------------------------------------------------------------
+
+
+siesta_src: siesta-{{ siesta_version }}
+siesta_src_archive: "{{ siesta_src }}.tar.gz"
+siesta_code_folder: "/tmp"
+siesta_prefix: "/usr/local"
+siesta_data_folder: "{{ siesta_prefix }}/share/siesta"
+siesta_url: "https://gitlab.com/siesta-project/siesta/-/archive/{{ siesta_version }}/{{ siesta_src_archive }}"
+siesta_topdir: "{{ siesta_code_folder }}/siesta-{{ siesta_version }}"
+
+siesta_xmlf90_version: "1.5.5"
+siesta_xmlf90_src: xmlf90-{{ siesta_xmlf90_version }}
+siesta_xmlf90_src_archive: "{{ siesta_xmlf90_src }}.tar.gz"
+siesta_xmlf90_code_folder: "/tmp"
+siesta_xmlf90_prefix: "/usr/local"
+siesta_xmlf90_url: "https://gitlab.com/siesta-project/libraries/xmlf90/-/archive/{{ siesta_xmlf90_version }}/{{ siesta_xmlf90_src_archive }}"
+siesta_xmlf90_topdir: "{{ siesta_xmlf90_code_folder }}/xmlf90-{{ siesta_xmlf90_version }}"
+
+siesta_libpsml_version: "1.1.10"
+siesta_libpsml_src: libpsml-{{ siesta_libpsml_version }}
+siesta_libpsml_src_archive: "{{ siesta_libpsml_src }}.tar.gz"
+siesta_libpsml_code_folder: "/tmp"
+siesta_libpsml_prefix: "/usr/local"
+siesta_libpsml_url: "https://gitlab.com/siesta-project/libraries/libpsml/-/archive/{{ siesta_libpsml_version }}/{{ siesta_libpsml_src_archive }}"
+siesta_libpsml_topdir: "{{ siesta_libpsml_code_folder }}/libpsml-{{ siesta_libpsml_version }}"
+
+# The libxc version (to be used through libgridxc). The (Quantum
+# Mobile) libxc role has the installation path hardwired now, and it
+# installs by default the 4.3.4 version. Since it suits us, we set
+# this version here, to save on building time if the libxc role was
+# invoked earlier (see the full logic in tasks/libxc.yml, including
+# how we simply install a system package if the distribution is modern enough)
+
+siesta_libxc_version: "4.3.4"
+siesta_libxc_root: "/usr/local/libxc-{{ siesta_libxc_version }}"
+
+siesta_libgridxc_version: "0.9.6"
+siesta_libgridxc_src: libgridxc-{{ siesta_libgridxc_version }}
+siesta_libgridxc_src_archive: "{{ siesta_libgridxc_src }}.tar.gz"
+siesta_libgridxc_code_folder: "/tmp"
+siesta_libgridxc_prefix: "/usr/local"
+siesta_libgridxc_url: "https://gitlab.com/siesta-project/libraries/libgridxc/-/archive/{{ siesta_libgridxc_version }}/{{ siesta_libgridxc_src_archive }}"
+siesta_libgridxc_topdir: "{{ siesta_libgridxc_code_folder }}/libgridxc-{{ siesta_libgridxc_version }}"
+
+siesta_flook_version: "0.8.1"
+siesta_flook_src: flook-{{ siesta_flook_version }}
+siesta_flook_src_archive: "{{ siesta_flook_src }}.tar.gz"
+siesta_flook_code_folder: "/tmp"
+siesta_flook_prefix: "/usr/local"
+siesta_flook_url: "https://github.com/ElectronicStructureLibrary/flook/archive/v0.8.1.tar.gz"
+siesta_flook_topdir: "{{ siesta_flook_code_folder }}/flook-{{ siesta_flook_version }}"
+
+siesta_xmlf90_root: "{{ siesta_xmlf90_prefix }}"
+siesta_psml_root: "{{ siesta_libpsml_prefix }}"
+siesta_gridxc_root: "{{ siesta_libgridxc_prefix }}"
+siesta_flook_root: "{{ siesta_flook_prefix }}"
+siesta_fftw_root: "/usr/lib"
+
+#----------
+siesta_netcdf_incflags: "-I/usr/include"
+siesta_netcdf_libs: "-lnetcdff -lnetcdf"
+siesta_fftw_incflags: "-I/usr/include"
+siesta_fftw_libs: "-lfftw3f -lfftw3"
+siesta_scalapack_libs: "-lscalapack-openmpi {{ siesta_blacs_libs }}"
+siesta_lapack_libs: "-llapack -lblas"
+
+#
+# This variable will be picked up by the Aiida role
+#
+siesta_executables:
+- name: siesta
+  folder: "{{ siesta_prefix }}/bin"
+  plugin: siesta.siesta
+  version: "{{ siesta_version }}"
+
+- name: plstm
+  folder: "{{ siesta_prefix }}/bin"
+  plugin: siesta.stm
+  version: "{{ siesta_version }}"
+
+#--------------------------------------------------
+
+# Siesta utilities, installed together with the main Siesta executable
+
+siesta_utils:
+- name: plstm
+  dir: Util/STM/simple-stm
+  description: >-
+    Post-processor for LDOS or RHO data for STM imaging
+
+- name: stm
+  dir: Util/STM/ol-stm/Src
+  description: >-
+    Generator of LDOS data (with opt wf projection) for STM imaging
+
+- name: unfold
+  dir: Util/Unfolding/Src
+  description: >-
+    Unfolding utility
+
+- name: denchar
+  dir: Util/Denchar/Src
+  description: >-
+    Charge density and wave-function plotting
+
+- name: g2c_ng
+  dir: Util/Grid
+  description: >-
+    Converter from native grid to Cube format
+
+- name: macroave
+  dir: Util/Macroave/Src
+  description: >-
+    Macroscopic averages processor
+
+- name: mprop
+  dir: Util/COOP
+  description: >-
+    COOP/COHP processor
+
+- name: fat
+  dir: Util/COOP
+  description: >-
+    Fat-bands processor
+
+- name: gnubands
+  dir: Util/Bands
+  description: >-
+    Band-structure plotting
+
+- name: eigfat2plot
+  dir: Util/Bands
+  description: >-
+    Fat-bands plotting
+
+- name: readwfx
+  dir: Util/WFS
+  description: >-
+    Read contents of WFSX files
+
+- name: vibra
+  dir: Util/Vibra/Src
+  description: >-
+    Computes phonon frequencies
+
+- name: fcbuild
+  dir: Util/Vibra/Src
+  description: >-
+    Pre-processor for force-constant calculation
+
+- name: tbtrans
+  dir: Util/TS/TBtrans
+  description: >-
+    Transport post-processor
+
+#
+# Pseudopotential packages -------------------------
+#
+
+siesta_psml_pps_version: "qm"
+siesta_psml_pps_src: psml-files-{{ siesta_psml_pps_version }}
+siesta_psml_pps_src_archive: "{{ siesta_psml_pps_src }}.tar.gz"
+siesta_psml_pps_code_folder: "/tmp"
+siesta_psml_pps_url: "https://gitlab.com/garalb/psml-files/-/archive/{{ siesta_psml_pps_version }}/{{ siesta_psml_pps_src_archive }}"
+
+# there is currently a bug that results in tests failing due to insignificant diffs
+# https://bugs.launchpad.net/siesta/+bug/1725813
+# therefore by default we only test that the runs complete, and do not check them against the expected output
+siesta_test_type: completed  # check
+
+# Note: running all tests would take of the order of 1h
+
+siesta_tests:
+- h2o
+- h2o-psml
+- mno_ldau
+
+siesta_lua_tests:
+- lua_h2o

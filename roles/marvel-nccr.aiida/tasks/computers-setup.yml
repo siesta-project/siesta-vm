@@ -1,0 +1,12 @@
+- name: set up aiida computers
+  include_tasks: computer-setup.yml
+
+- include_role:
+    name: release_notes
+  vars:
+    section: "AiiDA"
+    option: "computers"
+    value: >-
+      {{ aiida_computer_name }} has already been set up and configured.
+      List all available computers with 'verdi computer list -a'
+  when: release_notes is defined and release_notes

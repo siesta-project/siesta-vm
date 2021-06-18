@@ -1,0 +1,77 @@
+- name: "create python{{ aiida_python_version }} virtual env: {{ aiida_jupyter_venv }}"
+  import_role:
+    name: marvel-nccr.python
+  vars:
+    python_base_version: "{{ aiida_python_version }}"
+    # TODO add https://github.com/marvel-nccr/ansible-role-python/issues/6 when implemented
+    python_venv_path: "{{ aiida_jupyter_venv }}"
+    python_venv_state: present
+    python_venv_packages: "{{ aiida_jupyter_packages }}"
+  register: pip_install
+
+- name: "Symlink {{ item }} to {{ aiida_jupyter_venv }}/bin"
+  file:
+    src: "{{ aiida_venv }}/bin/{{ item }}"
+    dest: "{{ aiida_jupyter_venv }}/bin/{{ item }}"
+    state: link
+  loop: "{{ aiida_jupyter_symlink }}"
+
+- name: "Activate verdi TAB completion in jupyter virtualenv"
+  lineinfile:
+    path: "{{ aiida_jupyter_venv }}/bin/activate"
+    line: 'eval "$(verdi completioncommand)"'
+
+- name: Add {{ aiida_venv }} to jupyter kernels
+  shell: "{{ aiida_venv }}/bin/python -m ipykernel install --name {{ aiida_kernel_name }} --user"
+  args:
+    creates: "${HOME}/.local/share/jupyter/kernels/{{ aiida_kernel_name }}/kernel.json"
+
+- name: Create ipython config folder
+  file:
+    path: "${HOME}/.ipython/profile_default"
+    state: directory
+
+- name: Setup AiiDA jupyter extension
+  copy:
+    src: ipython_config.py
+    dest: "${HOME}/.ipython/profile_default"
+
+- name: Write jupyter-lab launch script
+  become: true
+  become_user: "{{ root_user }}"
+  template:
+    src: jupyterlab.sh
+    dest: "/usr/local/bin/aiida-jupyterlab"
+    mode: "0755"
+
+- name: Jupyter lab desktop shortcut
+  when: vm_headless is defined and not vm_headless
+  block:
+  - name: create ${HOME}/Desktop
+    file:
+      path: "${HOME}/Desktop"
+      state: directory
+
+  - name: Copy Jupyter logo
+    become: true
+    become_user: "{{ root_user }}"
+    copy:
+      src: jupyter-logo.png
+      dest: /usr/share/icons/
+
+  - name: Create desktop shortcut to Jupyter Lab launcher
+    template:
+      src: jupyterlab.desktop
+      dest: "${HOME}/Desktop"
+      mode: "0755"
+
+- name: Document Jupyter
+  when: release_notes is defined and release_notes
+  include_role:
+    name: release_notes
+  vars:
+    section: "Jupyter Lab"
+    option: "usage"
+    value: >-
+      Jupyter is installed in a Python {{ aiida_python_version }} venv: {{ aiida_jupyter_venv }}.
+      Type 'aiida-jupyterlab' to launch Jupyter Lab, and select the '{{ aiida_kernel_name }}' kernel.

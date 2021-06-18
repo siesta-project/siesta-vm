@@ -1,0 +1,47 @@
+- name: Update apt cache
+  become: true
+  become_user: "{{ root_user }}"
+  apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install apt dependencies
+  become: true
+  become_user: "{{ root_user }}"
+  apt:
+    name:
+    - gcc  # required for building pymatgen (in particular psutil)
+    - git
+      # database
+    - postgresql
+    - postgresql-server-dev-all
+    - postgresql-client
+    - libpq-dev
+    - rabbitmq-server
+      # misc
+    - libffi-dev
+    - libssl-dev
+    - graphviz  # for provenance graph visualisation
+    - python3-psycopg2  # required for postgresql_db role
+
+- block:
+  - name: Fetch location of the Postgresql binaries
+    command: find /usr/lib/postgresql/ -name bin
+    changed_when: false
+    register: aiida_postgres_bin_raw
+
+  - name: Set location of the Postgresql binaries
+    set_fact:
+      aiida_postgres_bin_location: "{{ aiida_postgres_bin_raw.stdout_lines[0] }}"
+
+  - name: Set data location for Postgresql
+    set_fact:
+      aiida_postgres_data_location: /var/lib/postgresql/data
+
+  - name: Initialize database
+    become: true
+    become_user: "{{ aiida_postgres_user }}"
+    command: "{{ aiida_postgres_bin_location }}/initdb {{ aiida_postgres_data_location }}"
+    args:
+      creates: "{{ aiida_postgres_data_location }}/pg_hba.conf"
+  when: ansible_service_mgr != "systemd"

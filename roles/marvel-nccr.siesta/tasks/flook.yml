@@ -1,0 +1,49 @@
+- name: Install flook dependencies
+  become: true
+  apt:
+    name:
+    - libreadline-dev
+
+- name: Get source for flook
+  get_url:
+    url: "{{ siesta_flook_url }}"
+    dest: "{{ siesta_flook_code_folder }}/{{ siesta_flook_src_archive }}"
+  register: flook_download
+  until: not flook_download.failed
+  retries: 3
+  delay: 10
+
+- name: Extract flook source
+  unarchive:
+    src: "{{ flook_download.dest }}"
+    dest: "{{ siesta_flook_code_folder }}"
+    remote_src: true
+
+- name: copy setup.make
+  template:
+    src: flook_setup.make
+    dest: "{{ siesta_flook_topdir }}/setup.make"
+
+- name: Make flook
+  command: make liball
+  args:
+    chdir: "{{ siesta_flook_topdir }}"
+    creates: "{{ siesta_flook_topdir }}/libflookall.a"
+  register: flook_make
+
+
+- name: Install flook lib
+  become: true
+  copy:
+    src: "{{ siesta_flook_topdir }}/libflookall.a"
+    dest: "{{ siesta_flook_prefix }}/lib"
+    remote_src: true
+    mode: '0755'
+
+- name: Install flook module
+  become: true
+  copy:
+    src: "{{ siesta_flook_topdir }}/flook.mod"
+    dest: "{{ siesta_flook_prefix }}/include"
+    remote_src: true
+    mode: '0755'

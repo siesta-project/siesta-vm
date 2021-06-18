@@ -1,0 +1,124 @@
+- name: Checkout aiida-core from GitHub
+  git:
+    repo: 'https://github.com/aiidateam/aiida-core.git'
+    dest: "{{ aiida_source_folder }}/aiida-core"
+    version: "{{ aiida_tag }}"
+  register: git_checkout
+
+- name: Read aiida-core setup.json
+  slurp:
+    src: "{{ aiida_source_folder }}/aiida-core/setup.json"
+  register: aiida_setup_slurp
+
+- name: Write pip requirements file
+  template:
+    src: pip-requirements.j2
+    dest: "{{ aiida_data_folder }}/requirements.txt"
+  vars:
+    aiida_setup: "{{ aiida_setup_slurp.content | b64decode | from_json }}"
+  register: aiida_pip_requirements
+
+- name: Write pip constraints file
+  # this is required for subsequent pip installs, e.g. by aiidalab
+  constraints:
+    src: "{{ aiida_data_folder }}/requirements.txt"
+    dest: "{{ aiida_venv_constraints }}"
+
+- name: "create python{{ aiida_python_version }} virtual env: {{ aiida_venv }}"
+  import_role:
+    name: marvel-nccr.python
+  vars:
+    python_base_version: "{{ aiida_python_version }}"
+    python_install_dev: true  # required to install pymatgen
+    python_install_tk: true  # required by ase.gui
+    # TODO add https://github.com/marvel-nccr/ansible-role-python/issues/6 when implemented
+    python_venv_path: "{{ aiida_venv }}"
+    python_venv_state: present
+    python_venv_packages: "{{ aiida_install_packages }}"
+  register: pip_install
+  notify: reentry scan
+
+- name: Install aiida-core + plugins into venv
+  pip:
+    requirements: "{{ aiida_data_folder }}/requirements.txt"
+    virtualenv: "{{ aiida_venv }}"
+  register: requirements_install
+
+- name: Install aiida-core from GitHub (editable)
+  pip:
+    name:
+    - "{{ aiida_source_folder }}/aiida-core"
+    virtualenv: "{{ aiida_venv }}"
+    editable: true
+    extra_args: "--no-deps"
+  register: aiida_core_install
+  notify: reentry scan
+  # this is necessary because, for some reason, installs with
+  # 'editable: true' always show as "changed"
+  when: git_checkout.changed or requirements_install.changed
+
+- meta: flush_handlers
+
+- name: "Activate verdi TAB completion in aiida virtualenv"
+  lineinfile:
+    path: "{{ aiida_venv }}/bin/activate"
+    line: 'eval "$(verdi completioncommand)"'
+
+- name: copy profile config
+  become: true
+  become_user: "{{ root_user }}"
+  template:
+    src: profile.yml
+    dest: "{{ aiida_templates_folder |  regex_replace('\\$\\{HOME}', current_user_home) }}/profile.yml"
+
+- name: "Check if AiiDA profile '{{ aiida_profile_name }}' has already been configured"
+  shell: "{{ aiida_venv }}/bin/verdi profile show {{ aiida_profile_name }}"
+  failed_when: false
+  changed_when: false
+  register: aiida_profile_show
+
+- name: "Set up AiiDA profile"
+  # Need to use the full path because it's in a virtualenv
+  shell: |
+    {{ aiida_venv }}/bin/verdi setup \
+    --non-interactive \
+    --config {{ aiida_templates_folder }}/profile.yml
+  when: aiida_profile_show.rc != 0
+
+- name: "Set the default AiiDA profile"
+  shell: "{{ aiida_venv }}/bin/verdi profile setdefault {{ aiida_profile_name }}"
+  # not ideal - better to read default profile from config
+  when: aiida_profile_show.rc != 0
+
+- name: Document aiida-core (version)
+  when: release_notes is defined and release_notes
+  include_role:
+    name: release_notes
+  vars:
+    section: "AiiDA"
+    option: "version"
+    value: "{{ aiida_version }}"
+
+- name: Document aiida-core (usage)
+  when: release_notes is defined and release_notes
+  include_role:
+    name: release_notes
+  vars:
+    section: "AiiDA"
+    option: "usage"
+    value: >-
+      AiiDA is installed in a Python {{ aiida_python_version }} venv: {{ aiida_venv }}.
+      Type 'workon aiida' to get access to the 'verdi' commands.
+      See https://aiidateam.github.io/aiida-registry for plugin information.
+
+- name: Document plugins
+  when: release_notes is defined and release_notes
+  include_role:
+    name: release_notes
+  vars:
+    section: "AiiDA Plugins"
+    option: "{{ plugin.key }}"
+    value: "{{ plugin.value.version }}"
+  loop: "{{ aiida_plugins|dict2items }}"
+  loop_control:
+    loop_var: plugin

@@ -1,0 +1,19 @@
+allow_duplicates: false
+
+galaxy_info:
+  role_name: libxc
+  author: "MARVEL NCCR"
+  # yamllint disable-line rule:line-length
+  description: "An ansible role to install [libxc](gitlab.com/libxc/libxc)."
+  license: MIT
+  min_ansible_version: 2.9
+  platforms:
+  - name: Ubuntu
+    versions:
+    - xenial
+    - bionic
+    - focal
+  galaxy_tags:
+  - ubuntu
+  - application
+  - science

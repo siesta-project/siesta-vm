@@ -1,0 +1,74 @@
+#
+#  This role installs Siesta in Ubuntu distributions
+#
+#      - The Siesta executable, as well as a number of utilities, are installed.
+#      - Requisite domain-specific libraries (libpsml, xmlf90, libgridxc, flook)
+#      - It uses ldconf to add to the shared-library search path
+
+- name: Install siesta dependencies
+  become: true
+  apt:
+    update_cache: true
+    cache_valid_time: 86400
+    name:
+    - gfortran
+    - make
+    - openmpi-common
+    - openmpi-bin
+    - libopenmpi-dev
+    - libnetcdf-dev
+    - netcdf-bin
+    - libnetcdff-dev
+    - libscalapack-mpi-dev
+    - libblas-dev
+    - liblapack-dev
+    - unzip
+    - libfftw3-dev
+    - autoconf
+
+# Install and configure libblacs-mpi-dev only for 16.04
+- name: Install and configure libblacs-mpi-dev for older distros
+  block:
+
+  - name: Install libblacs-mpi-dev
+    become: true
+    apt:
+      name:
+      - libblacs-mpi-dev
+
+  - name: Set blacs link string
+    set_fact:
+      siesta_blacs_libs: "-lblacsF77init-openmpi -lblacsCinit-openmpi -lblacs-openmpi"
+
+  when: ansible_facts['distribution_major_version'] | int <= 16
+
+- name: Unset blacs link string for modern distros
+  set_fact:
+    siesta_blacs_libs: ""
+  when: ansible_facts['distribution_major_version'] | int > 16
+
+
+# Compile and install libgridxc
+# --- libxc is handled here as a sub-task
+
+- include_tasks: gridxc-multi.yml
+
+# --- If testing libxc handling, you can comment out the rest
+#------------------------------------------------------------
+
+# Compile and install flook
+- include_tasks: flook.yml
+  when: siesta_enable_flook | bool
+
+# Compile and install xmlf90
+- include_tasks: xmlf90.yml
+
+# Compile and install libpsml
+- include_tasks: libpsml.yml
+
+# Compile and install Siesta and utilities
+- include_tasks: siesta.yml
+
+# Install pseudopotentials
+- include_tasks: psml-pps.yml
+  tags: siesta_psml_pps

@@ -1,0 +1,40 @@
+- name: Get source
+  get_url:
+    url: "{{ siesta_libpsml_url }}"
+    dest: "{{ siesta_libpsml_code_folder }}/{{ siesta_libpsml_src_archive }}"
+  register: libpsml_download
+  until: not libpsml_download.failed
+  retries: 3
+  delay: 10
+
+- name: Extract libpsml source
+  unarchive:
+    src: "{{ libpsml_download.dest }}"
+    dest: "{{ siesta_libpsml_code_folder }}"
+    remote_src: true
+
+- name: Create libpsml configure
+  shell: autoreconf -i
+  args:
+    chdir: "{{ siesta_libpsml_topdir }}"
+    creates: "{{ siesta_libpsml_topdir }}/configure"
+
+- name: Configure libpsml
+  shell: ./configure --with-xmlf90={{ siesta_xmlf90_prefix }} --prefix={{ siesta_libpsml_prefix }}
+  args:
+    chdir: "{{ siesta_libpsml_topdir }}"
+    creates: "{{ siesta_libpsml_topdir }}/Makefile"
+
+
+- name: Make libpsml
+  command: make -j{{ siesta_build_cpus }}
+  args:
+    chdir: "{{ siesta_libpsml_topdir }}"
+    creates: "{{ siesta_libpsml_topdir }}/src/libpsml.la"
+
+- name: Install libpsml
+  command: make install
+  args:
+    chdir: "{{ siesta_libpsml_topdir }}"
+    creates: "{{ siesta_libpsml_prefix }}/lib/libpsml.a"
+  become: yes

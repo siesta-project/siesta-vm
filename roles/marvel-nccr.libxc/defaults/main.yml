@@ -1,0 +1,7 @@
+libxc_version: "4.3.4"  # git release
+libxc_src: libxc-{{ libxc_version }}
+libxc_src_archive: "{{ libxc_src }}.tar.gz"
+libxc_url: "http://www.tddft.org/programs/libxc/down.php?file={{ libxc_version }}/{{ libxc_src }}.tar.gz"
+libxc_code_folder: "/tmp"
+libxc_prefix: "/usr/local/{{ libxc_src }}"
+libxc_build_cpus: 2

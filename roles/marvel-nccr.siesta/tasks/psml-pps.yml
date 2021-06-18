@@ -1,0 +1,47 @@
+#
+# Installation of PSML files (from Pseudo-Dojo)
+# Each family goes into a separate directory, under, e.g. /usr/local/share/siesta/psml-files
+#
+- name: Get PSML package
+  get_url:
+    url: "{{ siesta_psml_pps_url }}"
+    dest: "{{ siesta_psml_pps_code_folder }}/{{ siesta_psml_pps_src_archive }}"
+  register: psml_pps_download
+  until: not psml_pps_download.failed
+  retries: 3
+  delay: 10
+
+- name: "Create {{ siesta_data_folder }}"
+  become: true
+  file:
+    path: "{{ siesta_data_folder }}"
+    state: directory
+    mode: "0755"
+
+- name: Extract PSML files
+  become: true
+  unarchive:
+    src: "{{ psml_pps_download.dest }}"
+    dest: "{{ siesta_data_folder }}"
+    remote_src: true
+  register: psml_pps_extract
+  when: psml_pps_download.changed
+
+# permissions in original folder may not be readable
+- name: "Fix permissions"
+  become: true
+  file:
+    path: "{{ siesta_data_folder }}"
+    state: directory
+    mode: "0755"
+    recurse: true
+  when: psml_pps_extract.changed
+
+- name: Add release notes (pmsl)
+  include_role:
+    name: release_notes
+  vars:
+    section: "siesta"
+    option: "pps"
+    value: "PSML pseudopotentials have been downloaded to: {{ siesta_data_folder }}"
+  when: release_notes is defined and release_notes

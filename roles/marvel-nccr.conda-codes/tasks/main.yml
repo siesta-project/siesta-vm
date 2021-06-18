@@ -1,0 +1,38 @@
+- name: Install ssh (required by MPI)
+  become: true
+  apt:
+    update_cache: yes
+    cache_valid_time: 36000
+    name:
+    - ssh
+
+- name: Set Conda binary path
+  set_fact:
+    conda_code_exec: "{{ conda_code_parent_dir }}/{{ conda_code_link_dir }}/bin/conda"
+
+- name: install Conda
+  include_role:
+    name: andrewrothstein.miniconda
+  vars:
+    miniconda_parent_dir: "{{ conda_code_parent_dir }}"
+    miniconda_link_subdir: "{{ conda_code_link_dir }}"
+    miniconda_ver: "{{ conda_code_miniconda_ver }}"
+    miniconda_python_ver: "{{ conda_code_python_version | replace('.', '') }}"
+    miniconda_escalate: false
+    miniconda_pkg_update: false  # this is not idempotent
+
+- name: Initialise Conda for bash shell
+  command: "{{ conda_code_exec }} init -q --all"
+  changed_when: false
+
+# TODO these settings could be set by direct modification of ${HOME}/.condarc
+- name: Set auto_activate_base to {{ conda_code_auto_activate }}
+  command: "{{ conda_code_exec }} config --set auto_activate_base {{ 'true' if conda_code_auto_activate else 'false' }}"
+  changed_when: false
+- name: Make conda-forge default channel
+  command: "{{ conda_code_exec }} config --prepend channels conda-forge"
+  changed_when: false
+
+- name: Clean Conda
+  command: "{{ conda_code_exec }} clean -tipsyq"
+  changed_when: false

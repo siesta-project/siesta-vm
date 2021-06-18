@@ -1,0 +1,28 @@
+#
+# Question: What happens if there are two executable utilities in the same
+# directory?  Would the "register" clause leave one of them without being made?
+#
+
+- name: Compile "{{ prog.name }}"
+  shell: "make {{ prog.name }}"
+  args:
+    chdir: "{{ siesta_topdir }}/{{ prog.dir }}"
+    creates: "{{ siesta_topdir }}/{{ prog.dir }}/{{ prog.name }}"
+
+- name: Install "{{ prog.name }}"
+  become: true
+  copy:
+    src: "{{ siesta_topdir }}//{{ prog.dir }}/{{ prog.name }}"
+    dest: "{{ siesta_prefix }}/bin"
+    remote_src: true
+    mode: '0755'
+
+- name: Make release notes for utilities
+  include_role:
+    name: release_notes
+  vars:
+    section: "siesta"
+    option: "utility_{{ prog.name }}"
+    value: "{{ prog.description }}"
+  tags: siesta_utilities
+  when: release_notes is defined and release_notes

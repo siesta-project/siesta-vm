@@ -1,0 +1,45 @@
+# note: current_user is a dependency, but it won't run
+# if you use a tag to select just the daemon tasks
+- name: Get info on current user
+  include_role:
+    name: marvel-nccr.current_user
+  tags: [always]
+  when: current_user is undefined
+
+# apt and python packages
+- include_tasks: aiida-deps-rhel.yml
+  tags: [aiida_deps]
+  when: ansible_os_family|lower == 'redhat'
+- include_tasks: aiida-deps-debian.yml
+  tags: [aiida_deps]
+  when: ansible_os_family|lower == 'debian'
+
+# Start and setup Postgresql and RabbitMQ, create folders
+- import_tasks: aiida-prepare.yml
+  tags: [aiida, aiida_prepare]
+
+# install and setup AiiDA, including profile etc.
+- import_tasks: aiida-core.yml
+  tags: [aiida, aiida_core]
+- import_tasks: virtualenvwrapper.yml
+  tags: [aiida, aiida_core, aiida_venv]
+- import_tasks: jupyter.yml
+  tags: [aiida, aiida_core, aiida_jupyter]
+- import_tasks: aiida-daemon.yml
+  tags: [aiida_daemon, aiida_core]
+- import_tasks: aiida-rest.yml
+  tags: [aiida_rest, aiida_core]
+
+# setup computers
+- include_tasks: computers-setup.yml
+  tags: [aiida_computers, aiida_core]
+
+# setup plugin codes
+- include_tasks: aiida-code.yml
+  loop: "{{ aiida_plugins|dict2items }}"
+  loop_control:
+    loop_var: plugin
+  when:
+  - plugin.value.codes_var is defined
+  - lookup('vars', plugin.value.codes_var, default='') is truthy
+  tags: [aiida_codes]

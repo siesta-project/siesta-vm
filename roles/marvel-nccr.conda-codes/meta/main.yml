@@ -1,0 +1,20 @@
+galaxy_info:
+  role_name: conda-codes
+  author: "MARVEL NCCR"
+  # yamllint disable-line rule:line-length
+  description: "An Ansible role that installs computational codes from Conda"
+  license: MIT
+  min_ansible_version: 2.9
+  platforms:
+  - name: Ubuntu
+    versions:
+    - xenial
+    - bionic
+  galaxy_tags:
+  - ubuntu
+  - application
+  - science
+
+dependencies:
+- name: andrewrothstein.miniconda
+  version: v6.1.1

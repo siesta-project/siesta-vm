@@ -1,0 +1,17 @@
+allow_duplicates: false
+
+galaxy_info:
+  author: "MARVEL NCCR / Siesta project"
+  description: "An Ansible role that installs [Siesta](https://gitlab.com/siesta-project/siesta) on Ubuntu."
+  license: MIT
+  min_ansible_version: 2.7
+  platforms:
+  - name: Ubuntu
+    versions:
+    - xenial
+    - bionic
+    - focal
+  galaxy_tags:
+  - ubuntu
+  - application
+  - science

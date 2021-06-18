@@ -1,0 +1,18 @@
+---
+allow_duplicates: false
+
+galaxy_info:
+  role_name: current_user
+  author: "MARVEL NCCR"
+  description: "An ansible role that stores information about the current ansible (become) user."
+  license: MIT
+  min_ansible_version: 2.5
+  platforms:
+    - name: Ubuntu
+      versions:
+        - xenial
+        - bionic
+  galaxy_tags:
+    - ubuntu
+    - application
+    - science

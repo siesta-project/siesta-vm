@@ -1,0 +1,37 @@
+- include_role:
+    name: marvel-nccr.current_user
+  when: current_user is undefined
+
+- name: Add AiiDA REST API system service template
+  become: true
+  become_user: "{{ root_user }}"
+  template:
+    src: aiida-rest@.service
+    dest: /etc/systemd/system
+    owner: root
+    group: root
+    mode: 0644
+  vars:
+    daemon_user: "{{ current_user }}"
+    daemon_user_home: "{{ current_user_home }}"
+    daemon_aiida_venv: "{{ aiida_venv |  regex_replace('\\$\\{HOME}', current_user_home) }}"
+  when: ansible_service_mgr == "systemd"
+
+- name: Start AiiDA REST API service
+  become: true
+  become_user: "{{ root_user }}"
+  systemd:
+    name: aiida-rest@{{ aiida_profile_name }}
+    enabled: "{{ aiida_rest_service_enabled }}"
+    masked: false
+    daemon-reload: true
+  when: ansible_service_mgr == "systemd"
+
+- block:
+  - name: Check if the AiiDA REST API is running
+    shell: pgrep -a verdi | grep restapi | awk '{print $1}'
+    changed_when: false
+  rescue:
+  - name: Start AiiDA REST API
+    shell: "{{ aiida_venv }}/bin/verdi -p {{ aiida_profile_name }} restapi -H 0.0.0.0 &"
+  when: ansible_service_mgr != "systemd"

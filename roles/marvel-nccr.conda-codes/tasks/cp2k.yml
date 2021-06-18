@@ -1,0 +1,32 @@
+- name: "Create env: {{ env.name }}"
+  command: "{{ conda_code_exec }} create -qy -c conda-forge --override-channels -n {{ env.name }} {{ env.packages | join(' ') }}"
+  args:
+    creates: "{{ conda_code_parent_dir }}/{{ conda_code_link_dir }}/envs/{{ env.name }}"
+
+- include_role:
+    name: release_notes
+  vars:
+    section: "cp2k"
+    option: "version"
+    value: "{{ env.version }}"
+  when: release_notes is defined and release_notes
+
+- include_role:
+    name: release_notes
+  vars:
+    section: "cp2k"
+    option: "usage"
+    value: >-
+      cp2k is available in the {{ env.name }} Conda environment.
+      Activate with `conda activate {{ env.name }}`, then run `cp2k.psmp`.
+  when: release_notes is defined and release_notes
+
+- name: Set variables for AiiDA cp2k code
+  set_fact:
+    cp2k_executables:
+    - name: cp2k
+      folder: "{{ conda_code_parent_dir }}/{{ conda_code_link_dir }}/envs/{{ env.name }}/bin"
+      executable: cp2k.psmp
+      plugin: cp2k
+      version: "{{ env.version }}"
+      prepend_text: "{{ conda_code_exec }} activate {{ env.name }}"

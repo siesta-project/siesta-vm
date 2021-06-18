@@ -1,0 +1,24 @@
+- name: check if the AiiDA computer is already present
+  shell: "{{ aiida_venv }}/bin/verdi computer show {{ aiida_computer_name }}"
+  ignore_errors: true
+  register: aiida_check_computer
+  changed_when: false
+
+- name: "Copy the configuration for the {{ aiida_computer_name }} AiiDA computer"
+  template:
+    src: "computer.yml"
+    dest: "{{ aiida_templates_folder }}/{{ aiida_computer_name }}.yml"
+    mode: 0755
+  vars:
+    aiida_computer_run_folder_abs: "{{ aiida_computer_run_folder |  regex_replace('\\$\\{HOME}', current_user_home) }}"
+  when: aiida_check_computer.rc != 0
+
+- name: "Setup {{ aiida_computer_name }} computer for AiiDA"
+  shell: |
+    {{ aiida_venv }}/bin/verdi computer setup \
+      --non-interactive --config "{{ aiida_templates_folder }}/{{ aiida_computer_name }}.yml"
+  when: aiida_check_computer.rc != 0
+
+- name: "Configure {{ aiida_computer_name }}"
+  shell: "{{ aiida_venv }}/bin/verdi computer configure {{ aiida_computer_transport }} {{ aiida_computer_name }} --safe-interval 0 --non-interactive"
+  when: aiida_check_computer.rc != 0

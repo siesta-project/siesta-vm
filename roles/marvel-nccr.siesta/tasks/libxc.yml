@@ -1,0 +1,44 @@
+# In ubuntu 20, the libxc-dev package offers 4.3.4, which is good.
+#
+- name: Use packaged libxc for modern distros (Ubuntu 20.04)
+  block:
+
+  - name: Install libxc-dev
+    become: true
+    apt:
+      name:
+      - libxc-dev
+
+  - name: Point to the right place
+    set_fact:
+      libgridxc_libxc_incantation: "--with-libxc='-I/usr/include,-L/usr/lib/x86_64-linux-gnu -lxcf90 -lxc'"
+
+  when: ansible_facts['distribution_major_version'] | int > 18
+
+# In ubuntu 16, the libxc-dev package does not have a fortran library
+# In ubuntu 18, the libxc-dev package offers a not very robust 3.0.0
+# So we install 4.3.4 with the new Marvel libxc role for these
+
+- name: Use preinstalled or compile libxc for older distros
+  block:
+
+  - name: Check whether a proper libxc installation already exists
+    stat:
+      path: "{{ siesta_libxc_root }}"
+    register: libxc_installation
+
+  - name: Run libxc role to install libxc
+    include_role:
+      name: marvel-nccr.libxc
+    vars:
+      libxc_version: "{{ siesta_libxc_version }}"
+    when: not libxc_installation.stat.exists
+
+  # Here we disable shared libraries because the current libxc role does not build them,
+  # which might be a good thing, to avoid possible mis-configurations if another role
+  # adds a libxc-dev package. Also, we do not need to modify the loading paths.
+  - name: Pass libxc options to libgridxc
+    set_fact:
+      libgridxc_libxc_incantation: "--with-libxc={{ siesta_libxc_root }} --disable-shared"
+
+  when: ansible_facts['distribution_major_version'] | int <= 18

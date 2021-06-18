@@ -1,0 +1,34 @@
+- name: Converge
+  hosts: all
+  become: true
+
+  tasks:
+  - name: Install nodejs 12.x
+    when: (install_node is defined) and install_node|bool
+    include_role:
+      name: geerlingguy.nodejs
+    vars:
+      nodejs_version: 12.x
+      nodejs_install_npm_user: root
+
+  - name: Create dummy pw executable
+    copy:
+      content: ""
+      dest: /usr/bin/pw.x
+      force: no
+      mode: 0666
+
+  - include_role:
+      name: marvel-nccr.aiida
+    vars:
+        # just to test whether this also works
+      aiida_data_folder: "/usr/local/share"
+      quantum_espresso_version: "6.5"
+      quantum_espresso_executables:
+      - name: pw
+        folder: "/usr/bin"
+        executable: "pw.x"
+        plugin: quantumespresso.pw
+        version: "6.5"
+      aiida_profile_name: name-with-dashes  # use dashes to check systemd compatibility
+      vm_headless: false  # test creation of desktop shortcut

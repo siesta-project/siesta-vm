@@ -1,0 +1,83 @@
+#
+# Installation of libgridxc (serial and MPI versions, double precision)
+#
+# First, process libxc options
+#
+- include_tasks: libxc.yml
+
+- name: Get libgridxc source
+  get_url:
+    url: "{{ siesta_libgridxc_url }}"
+    dest: "{{ siesta_libgridxc_code_folder }}/{{ siesta_libgridxc_src_archive }}"
+  register: libgridxc_download
+  until: not libgridxc_download.failed
+  retries: 3
+  delay: 10
+
+- name: Extract libgridxc source
+  unarchive:
+    src: "{{ libgridxc_download.dest }}"
+    dest: "{{ siesta_libgridxc_code_folder }}"
+    remote_src: true
+
+- name: Create libgridxc configure
+  shell: autoreconf -i
+  args:
+    chdir: "{{ siesta_libgridxc_topdir }}"
+    creates: "{{ siesta_libgridxc_topdir }}/configure"
+
+- name: Create config directories
+  file:
+    path: "{{ siesta_libgridxc_topdir }}/{{ item }}"
+    state: directory
+  with_items:
+  - build_dp
+  - build_mpi_dp
+
+#
+# The following could also be parametrized with 'items' in a loop,
+# using appropriate variables for 'dp' and 'mpi_dp'.
+#
+# --------- dp version
+
+- name: Configure libgridxc dp
+  shell: " ../configure --enable-multiconfig  --without-mpi {{ libgridxc_libxc_incantation }} --prefix={{ siesta_libgridxc_prefix }}"
+  args:
+    chdir: "{{ siesta_libgridxc_topdir }}/build_dp"
+    creates: "{{ siesta_libgridxc_topdir }}/build_dp/Makefile"
+
+- name: Make libgridxc dp
+  shell: "make -j{{ siesta_build_cpus }}"
+  args:
+    chdir: "{{ siesta_libgridxc_topdir }}/build_dp"
+    creates: "{{ siesta_libgridxc_topdir }}/build_dp/src/libgridxc_dp.la"
+
+- name: Install libgridxc dp
+  shell: make install
+  args:
+    chdir: "{{ siesta_libgridxc_topdir }}/build_dp"
+    creates: "{{ siesta_libgridxc_prefix }}/lib/libgridxc_dp.a"
+  become: yes
+
+# --------- mpi_dp version
+- name: Configure libgridxc mpi_dp
+  shell: "../configure --enable-multiconfig --with-mpi {{ libgridxc_libxc_incantation }} --prefix={{ siesta_libgridxc_prefix }}"
+  environment:
+    MPIFC: mpif90
+    MPICC: mpicc
+  args:
+    chdir: "{{ siesta_libgridxc_topdir }}/build_mpi_dp"
+    creates: "{{ siesta_libgridxc_topdir }}/build_mpi_dp/Makefile"
+
+- name: Make libgridxc mpi_dp
+  shell: "make -j{{ siesta_build_cpus }}"
+  args:
+    chdir: "{{ siesta_libgridxc_topdir }}/build_mpi_dp"
+    creates: "{{ siesta_libgridxc_topdir }}/build_mpi_dp/src/libgridxc_dp_mpi.la"
+
+- name: Install libgridxc mpi_dp
+  shell: make install
+  args:
+    chdir: "{{ siesta_libgridxc_topdir }}/build_mpi_dp"
+    creates: "{{ siesta_libgridxc_prefix }}/lib/libgridxc_dp_mpi.a"
+  become: yes

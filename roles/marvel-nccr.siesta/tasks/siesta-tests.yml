@@ -1,0 +1,49 @@
+- name: Install siesta test dependencies
+  become: true
+  apt:
+    name:
+    - ssh
+
+- name: Set of tests
+  set_fact:
+    siesta_all_tests: "{{ siesta_tests }}"
+
+- name: Include Lua tests
+  set_fact:
+    siesta_all_tests: "{{ siesta_tests + siesta_lua_tests }}"
+  when: siesta_enable_flook | bool
+
+# Writing a file to indicate tests have passed ensures they are still run on re-runs of the role,
+# if the tests failed on the previous run (in this case siesta_make may not have changed)
+
+- name: Remove test pass indicator
+  when: siesta_make.changed
+  file:
+    path: "{{ siesta_topdir }}/Obj/Tests/TESTS_PASSED"
+    state: absent
+
+- name: Read test pass indicator
+  stat:
+    path: "{{ siesta_topdir }}/Obj/Tests/TESTS_PASSED"
+  register: siesta_tests_passed
+
+# Use --oversubscribe in case there is only one core in the virtual machine...
+# use --allow-run-as-root for when running in test docker
+- name: Run siesta tests (type={{ siesta_test_type }})
+  when: not siesta_tests_passed.stat.exists
+  shell: make clean; make MPI='mpirun --allow-run-as-root --oversubscribe -np {{ siesta_build_cpus }}' {{ siesta_test_type }}
+  args:
+    chdir: "{{ siesta_topdir }}/Obj/Tests/{{ item }}"
+  with_items: "{{ siesta_all_tests }}"
+  tags: tests
+
+- name: Write test pass indicator
+  file:
+    path: "{{ siesta_topdir }}/Obj/Tests/TESTS_PASSED"
+    state: touch
+    modification_time: preserve
+    access_time: preserve
+
+# fails (return code != 0), if "Test Failed." is found
+# - name: check siesta test results
+#   command: grep -vFxq "Test Failed." "{{ siesta_topdir }}/build/Testing/Temporary/LastTest.log"

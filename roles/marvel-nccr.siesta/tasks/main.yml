@@ -69,6 +69,9 @@
 # Compile and install Siesta and utilities
 - include_tasks: siesta.yml
 
+# Compile and install visualization tools by A. Postnikov
+- include_tasks: visual.yml
+
 # Install pseudopotentials
 - include_tasks: psml-pps.yml
   tags: siesta_psml_pps

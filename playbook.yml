@@ -13,13 +13,3 @@
     role: marvel-nccr.siesta
     tags: [siesta]
 
-- name: Install graphical dependencies for School
-  become: true
-  apt:
-    update_cache: true
-    cache_valid_time: 86400
-    name:
-    - x11-apps
-    - xauth
-
-

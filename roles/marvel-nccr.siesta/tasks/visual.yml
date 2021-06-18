@@ -1,0 +1,36 @@
+- name: Get source for visualization tools
+  get_url:
+    url: "{{ siesta_visualization_url }}"
+    dest: "{{ siesta_visualization_code_folder }}/{{ siesta_visualization_src_archive }}"
+  register: visualization_download
+  until: not visualization_download.failed
+  retries: 3
+  delay: 10
+
+- name: Extract visualization source
+  unarchive:
+    src: "{{ visualization_download.dest }}"
+    dest: "{{ siesta_visualization_code_folder }}"
+    remote_src: true
+
+- name: Make visualization tools
+  command: make
+  args:
+    chdir: "{{ siesta_visualization_topdir }}/Sies2xsf"
+    creates: "{{ siesta_visualization_topdir }}/rho2xsf"
+  register: visualization_make
+
+
+- name: Install visualization tools
+  become: true
+  copy:
+    src: "{{ siesta_visualization_topdir }}/Sies2xsf/{{ item }}"
+    dest: "{{ siesta_visualization_prefix }}/bin"
+    remote_src: true
+    mode: '0755'
+  with_items:
+  - rho2xsf
+  - eig2bxsf
+  - xv2xsf
+  - md2axsf
+  - vib2xsf

@@ -91,6 +91,15 @@ siesta_flook_root: "{{ siesta_flook_prefix }}"
 siesta_fftw_root: "/usr/lib"
 
 #----------
+siesta_visualization_version: "0.5.0"
+siesta_visualization_src: visualization-{{ siesta_visualization_version }}
+siesta_visualization_src_archive: "{{ siesta_visualization_src }}.tar.gz"
+siesta_visualization_code_folder: "/tmp"
+siesta_visualization_prefix: "/usr/local"
+siesta_visualization_url: "https://gitlab.com/siesta-project/analysis-tools/visualization/-/archive/{{ siesta_visualization_version }}/{{ siesta_visualization_src_archive }}"
+siesta_visualization_topdir: "{{ siesta_visualization_code_folder }}/visualization-{{ siesta_visualization_version }}"
+
+#----------
 siesta_netcdf_incflags: "-I/usr/include"
 siesta_netcdf_libs: "-lnetcdff -lnetcdf"
 siesta_fftw_incflags: "-I/usr/include"
